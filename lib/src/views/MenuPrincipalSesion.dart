@@ -35,16 +35,49 @@ class _MenuPrincipalSesionState extends State<MenuPrincipalSesion> {
     _cargarProcedimientos();
   }
 
+  // ------ FALLBACK ESTÁTICO ------
+  List<Procedimiento> _fallbackProcedimientos() {
+    // Si tu modelo no tiene fromJson, crea con el constructor que tengas.
+    return [
+      Procedimiento.fromJson({
+        "nombre": "Limpieza Facial Profunda",
+        "precio": 80000,
+        "duracion": 60,
+        "requiereEvaluacion": 0,
+        "imagen": "https://i.ibb.co/fX4p9CN/facial1.jpg",
+      }),
+      Procedimiento.fromJson({
+        "nombre": "Masaje Relajante",
+        "precio": 120000,
+        "duracion": 90,
+        "requiereEvaluacion": 0,
+        "imagen": "https://i.ibb.co/6HmbXZm/masaje1.jpg",
+      }),
+      Procedimiento.fromJson({
+        "nombre": "Exfoliación Corporal",
+        "precio": 95000,
+        "duracion": 75,
+        "requiereEvaluacion": 1,
+        "imagen": "https://i.ibb.co/RDY72sk/exfoliacion1.jpg",
+      }),
+    ];
+  }
+
   Future<void> _cargarProcedimientos() async {
     try {
       final lista = await ProcedimientoService.listarProcedimientos();
       setState(() {
-        procedimientos = lista;
+        // Si la API viene vacía, usa los 3 estáticos
+        procedimientos = (lista.isEmpty) ? _fallbackProcedimientos() : lista;
         cargando = false;
       });
     } catch (e) {
       print('Error al cargar procedimientos: $e');
-      setState(() => cargando = false);
+      // En error, también muestra los estáticos
+      setState(() {
+        procedimientos = _fallbackProcedimientos();
+        cargando = false;
+      });
     }
   }
 
@@ -61,6 +94,7 @@ class _MenuPrincipalSesionState extends State<MenuPrincipalSesion> {
         appBar: AppBar(
           title: const Text('Clinica Estetica - rejuvenezk'),
           backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
         ),
         body: Padding(
           padding: const EdgeInsets.all(16),
@@ -205,18 +239,9 @@ class _MenuPrincipalSesionState extends State<MenuPrincipalSesion> {
           },
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Alquiler',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Usuario',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.app_registration),
-              label: 'Registrar',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Alquiler'),
+            BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Usuario'),
+            BottomNavigationBarItem(icon: Icon(Icons.app_registration), label: 'Registrar'),
           ],
         ),
       );
