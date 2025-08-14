@@ -13,6 +13,14 @@ dependencies:
   shared_preferences: ^2.0.15
   flutter_dotenv: ^5.0.2
   rflutter_alert: ^2.0.7
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  google_maps_flutter: ^2.7.0          # ← una sola vez
+  google_maps_flutter_android: ^2.7.0   # ← implementación Android
+  geolocator: ^14.0.2
+  url_launcher: ^6.3.2
+  connectivity_plus: ^6.1.5
+
 
 dev_dependencies:
   flutter_test:
@@ -23,3 +31,5 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/images/servicios/piel.jpg
+

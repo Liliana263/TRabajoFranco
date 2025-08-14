@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
 import '../widgets/modal_agendar_cita.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'mapa_clinica_view.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
 
 class DetallesClinica extends StatelessWidget {
-  final String imageUrl, nombre;
+  final String imageUrl, nombre; // imageUrl ya no se usa (se deja para compatibilidad)
   final int duracion, precio;
-  DetallesClinica({required this.imageUrl, required this.nombre, required this.duracion, required this.precio});
+
+  DetallesClinica({
+    required this.imageUrl,
+    required this.nombre,
+    required this.duracion,
+    required this.precio,
+  });
+
+  // Clínica fija (Popayán)
+  static const LatLng _clinicaLatLng = LatLng(2.4419, -76.6062);
+  static const String _clinicaNombre = 'Clínica Estética Rejuvenezk';
+  static const String _clinicaDireccion = 'Parque Caldas, Centro Histórico, Popayán - Cauca';
 
   final Color fondo = const Color(0xFF0D1B2A),
       encabezado = const Color(0xFF1B263B),
@@ -22,8 +37,7 @@ class DetallesClinica extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.network(imageUrl, height: 240, width: double.infinity, fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(height: 240, color: Colors.grey[300], alignment: Alignment.center, child: const Icon(Icons.broken_image, size: 60))),
+            child: Image.asset('assets/images/servicios/piel.jpg', height: 240, width: double.infinity, fit: BoxFit.cover),
           ),
           const SizedBox(height: 24),
           Text(nombre, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: texto), textAlign: TextAlign.center),
@@ -31,39 +45,55 @@ class DetallesClinica extends StatelessWidget {
           _info("💲 Precio del servicio:", "\$$precio"),
           _info("⏱️ Duración:", "$duracion minutos"),
           const SizedBox(height: 30),
+          // Agendar (confirmar/reprogramar con regla 24h)
           ElevatedButton(
             onPressed: () async {
               final r1 = await _abrirModal(context);
               if (r1 == null || r1['ok'] != true) return;
               DateTime fecha = r1['fecha'];
               String h24 = r1['hora'], h12 = _h12(h24);
-
               while (true) {
                 final acc = await _confirmar(context, fecha, h12);
                 if (!context.mounted) return;
-
                 if (acc == _Accion.cancelar) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Agendamiento cancelado.")));
                   return;
                 }
-
                 if (acc == _Accion.reprogramar) {
                   final r2 = await _abrirModal(context, fechaInicial: fecha, horaInicial24: h24);
                   if (r2 == null || r2['ok'] != true) continue;
-                  final nf = r2['fecha']; final nh24 = r2['hora'];
+                  final nf = r2['fecha'], nh24 = r2['hora'];
                   if (_menos24h(nf, nh24)) { await _alerta(context, "No permitido", "No puedes cambiar la cita con menos de 24 horas de anticipación."); continue; }
                   fecha = nf; h24 = nh24; h12 = _h12(h24); continue;
                 }
-
                 if (acc == _Accion.confirmar) {
                   if (_menos24h(fecha, h24)) { await _alerta(context, "No permitido", "No puedes agendar una cita con menos de 24 horas de anticipación."); continue; }
-                  await _ok(context, "¡Cita agendada!", "Tu cita quedó para el ${_f(fecha)} a las $h12.");
-                  return;
+                  await _ok(context, "¡Cita agendada!", "Tu cita quedó para el ${_f(fecha)} a las $h12."); return;
                 }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: boton, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), textStyle: const TextStyle(fontSize: 18)),
             child: const Text('Agendar cita'),
+          ),
+          const SizedBox(height: 12),
+          // Ver ubicación (mapa interno)
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const MapaClinicaView(
+                nombreClinica: _clinicaNombre, direccion: _clinicaDireccion, clinicaLatLng: _clinicaLatLng,
+              )));
+            },
+            icon: const Icon(Icons.map_outlined),
+            label: const Text('Ver ubicación'),
+            style: ElevatedButton.styleFrom(backgroundColor: campos, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          ),
+          const SizedBox(height: 8),
+          // Cómo llegar (desde ubicación actual; fallback a solo destino)
+          OutlinedButton.icon(
+            onPressed: () => _rutasDesdeAqui(context),
+            icon: const Icon(Icons.directions),
+            label: const Text('Cómo llegar'),
+            style: OutlinedButton.styleFrom(side: BorderSide(color: boton), foregroundColor: boton, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           ),
         ]),
       ),
@@ -77,8 +107,7 @@ class DetallesClinica extends StatelessWidget {
       backgroundColor: encabezado,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => ModalAgendarCita(
-        servicioId: 0, duracionMin: duracion,
-        fondo: fondo, encabezado: encabezado, campos: campos, boton: boton, texto: texto,
+        servicioId: 0, duracionMin: duracion, fondo: fondo, encabezado: encabezado, campos: campos, boton: boton, texto: texto,
         initialDate: fechaInicial, initialTime24: horaInicial24,
       ),
     );
@@ -104,9 +133,7 @@ class DetallesClinica extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, _Accion.reprogramar), style: TextButton.styleFrom(foregroundColor: Colors.amberAccent), child: const Text('Cambiar fecha/hora')),
           TextButton(onPressed: () => Navigator.pop(ctx, _Accion.cancelar), style: TextButton.styleFrom(foregroundColor: Colors.redAccent), child: const Text('Cancelar')),
-          ElevatedButton.icon(onPressed: () => Navigator.pop(ctx, _Accion.confirmar),
-            style: ElevatedButton.styleFrom(backgroundColor: boton, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            icon: const Icon(Icons.check_circle_outline), label: const Text('Confirmar')),
+          ElevatedButton.icon(onPressed: () => Navigator.pop(ctx, _Accion.confirmar), style: ElevatedButton.styleFrom(backgroundColor: boton, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), icon: const Icon(Icons.check_circle_outline), label: const Text('Confirmar')),
         ],
       ),
     );
@@ -147,21 +174,34 @@ class DetallesClinica extends StatelessWidget {
 
   bool _menos24h(DateTime f, String h24) {
     final p = h24.split(':'), h = int.parse(p[0]), m = int.parse(p[1]);
-    final fh = DateTime(f.year, f.month, f.day, h, m);
-    return fh.isBefore(DateTime.now().add(const Duration(hours: 24)));
+    return DateTime(f.year, f.month, f.day, h, m).isBefore(DateTime.now().add(const Duration(hours: 24)));
   }
 
-  String _f(DateTime d) => "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-  String _h12(String h24) { final p = h24.split(':'); int h = int.parse(p[0]); final m = p.length > 1 ? p[1] : '00'; final s = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h == 0) h = 12; return "$h:$m $s"; }
+  String _f(DateTime d) => "${d.year.toString().padLeft(4,'0')}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}";
+  String _h12(String h24) { final p = h24.split(':'); int h = int.parse(p[0]); final m = p.length>1?p[1]:'00'; final s = h>=12?'PM':'AM'; h%=12; if (h==0) h=12; return "$h:$m $s"; }
 
-  Widget _info(String a, String b) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(children: [
-        Expanded(child: Text(a, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: texto))),
-        Expanded(child: Text(b, textAlign: TextAlign.end, style: TextStyle(fontSize: 18, color: texto))),
-      ]),
-    );
+  Widget _info(String a, String b) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(children: [
+      Expanded(child: Text(a, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: texto))),
+      Expanded(child: Text(b, textAlign: TextAlign.end, style: TextStyle(fontSize: 18, color: texto))),
+    ]),
+  );
+
+  Future<void> _rutasDesdeAqui(BuildContext context) async {
+    try {
+      LocationPermission p = await Geolocator.checkPermission();
+      if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
+      if (p == LocationPermission.deniedForever) throw 'denegado';
+      final pos = await Geolocator.getCurrentPosition();
+      final o = '${pos.latitude},${pos.longitude}';
+      final d = '${_clinicaLatLng.latitude},${_clinicaLatLng.longitude}';
+      await launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&origin=$o&destination=$d&travelmode=driving'), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      final d = '${_clinicaLatLng.latitude},${_clinicaLatLng.longitude}';
+      await launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$d&travelmode=driving'), mode: LaunchMode.externalApplication);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permite ubicación para mejores rutas.')));
+    }
   }
 }
 

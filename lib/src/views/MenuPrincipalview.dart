@@ -83,13 +83,12 @@ class _MenuPrincipalSesionState extends State<MenuPrincipalSesion> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      DetallesClinicaSinSesion(
-                                        imageUrl: proc.imagen,
-                                        nombre: proc.nombre,
-                                        duracion: proc.duracion,
-                                        precio: proc.precio,
-                                      ),
+                                  builder: (context) => DetallesClinicaSinSesion(
+                                    imageUrl: proc.imagen,
+                                    nombre: proc.nombre,
+                                    duracion: proc.duracion,
+                                    precio: proc.precio,
+                                  ),
                                 ),
                               );
                             },
@@ -100,29 +99,18 @@ class _MenuPrincipalSesionState extends State<MenuPrincipalSesion> {
                                     topLeft: Radius.circular(10),
                                     bottomLeft: Radius.circular(10),
                                   ),
-                                  child: Image.network(
-                                    proc.imagen,
+                                  child: Image.asset(
+                                    'assets/images/servicios/piel.jpg',
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              width: 100,
-                                              height: 100,
-                                              color: Colors.grey[300],
-                                              child: Icon(
-                                                Icons.image_not_supported,
-                                              ),
-                                            ),
                                   ),
                                 ),
                                 Expanded(
                                   child: Padding(
                                     padding: const EdgeInsets.all(10),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           proc.nombre,
@@ -133,23 +121,16 @@ class _MenuPrincipalSesionState extends State<MenuPrincipalSesion> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text("💲 Precio: \$${proc.precio}"),
-                                        Text(
-                                          "⏱️ Duración: ${proc.duracion} min",
-                                        ),
-                                        Text(
-                                          "🩺 Evaluación: ${proc.requiereEvaluacion == 1 ? 'Sí' : 'No'}",
-                                        ),
+                                        Text("⏱️ Duración: ${proc.duracion} min"),
+                                        Text("🩺 Evaluación: ${proc.requiereEvaluacion == 1 ? 'Sí' : 'No'}"),
                                       ],
                                     ),
                                   ),
                                 ),
                                 const Padding(
                                   padding: EdgeInsets.only(right: 10),
-                                  child: Icon(
-                                    Icons.arrow_forward_ios,
-                                    color: Colors.blueAccent,
-                                    size: 18,
-                                  ),
+                                  child: Icon(Icons.arrow_forward_ios,
+                                      color: Colors.blueAccent, size: 18),
                                 ),
                               ],
                             ),
@@ -166,48 +147,24 @@ class _MenuPrincipalSesionState extends State<MenuPrincipalSesion> {
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => LoginScreen()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
               break;
             case 1:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => MenuPrincipalSesion()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => MenuPrincipalSesion()));
               break;
             case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => MenuDrawerPerfil()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => MenuDrawerPerfil()));
               break;
             case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => RegistrarUsuario()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => RegistrarUsuario()));
               break;
           }
         },
         items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home, color: primario),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: primario),
-            label: 'Alquiler',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings, color: primario),
-            label: 'Usuario',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.app_registration, color: primario),
-            label: 'Registrar',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home, color: primario), label: 'Inicio'),
+          BottomNavigationBarItem(icon: Icon(Icons.person, color: primario), label: 'Alquiler'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings, color: primario), label: 'Usuario'),
+          BottomNavigationBarItem(icon: Icon(Icons.app_registration, color: primario), label: 'Registrar'),
         ],
       ),
     );
